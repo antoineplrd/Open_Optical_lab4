@@ -81,6 +81,22 @@ class Network:
                 successive_lines.update({i + j: self._lines.get(i + j)})
             self._nodes.get(i).successive = successive_lines
 
+        # initial switching matrix
+        switching_matrix = []
+        for node_label, node in self._nodes.items():
+            node.switching_matrix = {}  # reset to zero for each node
+            for neighbor_label in node.connected_nodes:
+                node.successive[neighbor_label] = None
+                if node_label == neighbor_label:
+                    node.switching_matrix[neighbor_label] = np.zeros(10, dtype=int)  # initialise zero for the same node
+                else:
+                    node.switching_matrix[neighbor_label] = np.ones(10, dtype=int, )  # initialise one for diff node
+            switching_matrix.append([node_label, node.switching_matrix])
+
+        node.switching_matrix = switching_matrix
+
+        print(node.switching_matrix)
+
     def find_paths(self, start_node, end_node, path=None):
 
         if path is None:
@@ -238,7 +254,6 @@ class Network:
 
             if temp == 1:
                 break
-        print(best_path)
         return best_path
 
     def stream(self, connection, label="latency"):
@@ -332,6 +347,7 @@ class Network:
 
         }
         df = pd.DataFrame(data)
-        #print(tabulate(df, showindex=True, headers=df.columns))
+        # print(tabulate(df, showindex=True, headers=df.columns))
 
         return df
+

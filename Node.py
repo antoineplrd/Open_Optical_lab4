@@ -5,6 +5,7 @@ class Node:
         self._position = tuple(position)
         self._connected_nodes = connected_nodes
         self._successive = dict()
+        self._switching_matrix = None
 
     @property
     def label(self):
