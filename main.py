@@ -10,7 +10,6 @@ from tabulate import tabulate
 
 def main():
     network = Network()
-
     nodeValue = 'ABCDEF'
     signal_power = 0.001
 
@@ -23,12 +22,15 @@ def main():
             if inputNode != outputNode:
                 break
 
-        connections = Connection(inputNode, outputNode, signal_power)
+        connections = Connection("A", "B", signal_power)
 
         network.stream(connections, 'latency')
         # network.stream(connections, 'snr')
 
     # network.draw() # modifier pour mettre le chemin ?
+
+    df = network.chanel_availability()
+    print(tabulate(df, showindex=True, headers=df.columns))
 
 
 if "__main__" == __name__:
