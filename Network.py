@@ -97,11 +97,6 @@ class Network:
             self._nodes.get(i).switching_matrix = switching_matrix
             print(self._nodes.get(i).switching_matrix)
 
-            """"# Update route space for all paths through node
-            for neighbor_label in self._nodes.get(i).connected_nodes:
-                self.update_route_space([node_label, neighbor_label])
-                self.update_route_space([neighbor_label, node_label])"""
-
     def find_paths(self, start_node, end_node, path=None):
 
         if path is None:
@@ -119,10 +114,8 @@ class Network:
         return paths
 
     def propagate(self, signal_information):
-        chemin = signal_information.path[:]
         propagate = self._nodes.get(signal_information.path[0]).propagate(signal_information)
-        #self._route_space = self.chanel_availability()  # We update for each new path the avability
-        self.update_route_space(chemin)
+        self._route_space = self.chanel_availability()  # We update for each new path the avability
         return propagate
 
     def probe(self, signal_information):
@@ -220,8 +213,7 @@ class Network:
         for path in all_paths:
             if path[0] == input_node and path[len(path) - 1] == output_node:
                 test = True
-                occupancy = all_occupancy[all_paths_occupancy.index(path)]
-                final_occupancy = list(chain.from_iterable(occupancy))  # remove double [[]]
+                final_occupancy = all_occupancy[all_paths_occupancy.index(path)]
                 for i in range(len(final_occupancy)):
                     if final_occupancy[i]:
                         test = True
@@ -276,6 +268,7 @@ class Network:
     def chanel_availability(self):
         var = list()
         path = list()
+        switching_matrix = list()
 
         for i in self._nodes:
             for j in self._nodes:
@@ -289,7 +282,6 @@ class Network:
             for actualPath in AllPaths:
                 availability_temp = list()
                 availability = list()
-                final_availability = list()
 
                 for label in range(len(actualPath)):
                     if label < len(actualPath) - 1:  # dealing with the case for the last line
@@ -301,28 +293,15 @@ class Network:
                 path_cpy = actualPath[:]
                 path_cpy = '->'.join(path_cpy)
                 self.probe(Signal_information(0.001, actualPath))
-                test = list()  # we reset the list for each path
-                for chemin in availability:  # for each path of each line
-                    for index1 in range(len(chemin[0])):  # cross on different frequency (i.e. 10)
-                        availability_path = list()  # reset to zero for each channel
-                        for index2 in range(len(chemin)):  # cross on different lines of the path for same channel
-                            availability_path.append(chemin[index2][index1])  # send each state with the same channel
 
-                        if len(set(availability_path)) == 1 and availability_path[0] is True:  # only true
-                            test.append(True)
-                        elif len(set(availability_path)) == 1 and availability_path[0] is False:  # only false
-                            test.append(False)
-                        else:  # case with false and true
-                            test.append(False)
-
-                    final_availability.append(test)
-
-                result_data.append(list([path_cpy, final_availability]))
+                result_data.append(list([path_cpy]))
+                final_path = path_cpy.split("->")
+                switching_matrix.append(self.update_route_space(final_path))
 
         data = {
 
             "Paths": [i[0] for i in result_data],
-            "availability": [i[1] for i in result_data],
+            "availability": [i for i in switching_matrix],
 
         }
         df = pd.DataFrame(data)
@@ -331,45 +310,15 @@ class Network:
         return df
 
     def update_route_space(self, path):
-        # Get initial and final nodes
-        #print(path)
-        self._route_space = self.chanel_availability()
-        route_space_update = np.ones(10)
 
-        # get the route space attribute
-        # route_space_update = self.chanel_availability() not sure to use it
+        route_space_update = [1] * 10
+        for i in range(len(path) - 2):
+            route_space_update = [i1 * i2 for i1, i2 in zip(
+                route_space_update, self._nodes.get(path[i + 1]).switching_matrix[path[i]][path[i + 2]])]
 
-        # Iterate over nodes in path
-        for i, node_label in enumerate(path[1:-1]):
-            node = self._nodes[node_label]  # actual node
-            past_node = self._nodes[path[i]].label
-            next_node = self._nodes[path[i + 1]].label
-            future_node = self._nodes[path[i + 2]].label
+        for i in range(len(path) - 1):
+            route_space_update = [i1 * i2 for i1, i2 in zip(
+                route_space_update, self._lines.get(
+                    path[i] + path[i + 1]).state)]  # On multiplie le précédent résultat par chaque line du path
 
-            switching_matrix = node.switching_matrix[past_node][
-                future_node]  # get the switching matrix for the last node and next node
-            # Multiply route space of state line by switching matrix
-            """print(self._lines.get(past_node + next_node).state)
-            print(switching_matrix)
-            print(self._lines.get(next_node + future_node).state)"""
-            print("sw")
-            print(switching_matrix)
-            route_space_update = route_space_update * self._lines.get(
-                past_node + next_node).state * switching_matrix * self._lines.get(
-                next_node +
-                future_node).state
-            print(route_space_update)
-        test = ""
-        i = 0
-        while test != path:
-            test = self._route_space.loc[i, 'Paths']
-            test = test.split("->")
-            break
-            i += 1
-
-        # Update route space for path
-
-        #print(self._route_space.loc[i, 'availability'])
-
-        #self._route_space.loc[i, 'availability'] = route_space_update
-
+        return route_space_update

@@ -8,7 +8,7 @@ class Line:
         self._length = length
         self._successive = dict()
         self._number_of_channel = number_of_channel
-        self._state = [True] * number_of_channel
+        self._state = [1] * number_of_channel
 
     @property
     def label(self):
@@ -50,7 +50,7 @@ class Line:
         return pow(10, -9) * signal_power * self._length
 
     def propagate(self, lightpath: Lightpath):
-        self._state[lightpath.channel] = False  # we change the actual line with channel between 1 and 10 to False
+        self._state[lightpath.channel] = 0  # we change the actual line with channel between 1 and 10 to False
         lightpath.update_noise_power(self.noise_generation(lightpath.signal_power))
         lightpath.UpdateLatency(self.latency_generation())
         return self._successive.get(lightpath.path[0]).propagate(lightpath)

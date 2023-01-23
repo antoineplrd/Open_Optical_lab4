@@ -22,7 +22,7 @@ def main():
             if inputNode != outputNode:
                 break
 
-        connections = Connection("A", "B", signal_power)
+        connections = Connection(inputNode, outputNode, signal_power)
 
         network.stream(connections, 'latency')
         # network.stream(connections, 'snr')
